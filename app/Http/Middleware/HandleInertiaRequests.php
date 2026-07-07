@@ -65,8 +65,6 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'featureFlags' => Cache::get('feature_flags', []),
                 'locale'       => $user?->locale ?? config('app.locale'),
-                'impersonating' => $impersonating,
-                'impersonatedName' => $impersonatedName,
             ]);
 
             return $shared;

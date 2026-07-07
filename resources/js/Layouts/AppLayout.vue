@@ -78,7 +78,6 @@ import { ref, computed, onMounted, onBeforeUnmount, provide } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useGlobalShortcuts, shortcuts as shortcutsList } from '@/composables/useGlobalShortcuts';
 import OfflineBanner from '@/Components/OfflineBanner.vue';
-import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import Sidebar from '@/Components/Sidebar.vue';
 import AdminSidebar from '@/Components/AdminSidebar.vue';
 import Header from '@/Components/Header.vue';

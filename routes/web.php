@@ -21,12 +21,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\ScholarshipController as AdminScholarshipController;
 use App\Http\Controllers\Admin\ImportController as AdminImportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Admin\FeatureFlagController;
 use App\Http\Controllers\Admin\ExportController;
-use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\UserExportController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ScheduledTaskController;
@@ -37,7 +35,6 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomReportController;
 use App\Http\Controllers\Admin\SharedDashboardController;
 use App\Http\Controllers\Admin\DashboardLayoutController;
-use App\Http\Controllers\Admin\AnnotationController;
 use App\Http\Controllers\Public\SharedDashboardController as PublicSharedDashboardController;
 use App\Http\Controllers\Api\MatchStatusController;
 use App\Http\Controllers\Api\MatchBreakdownController;
@@ -101,6 +98,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/auth/2fa/disable', [TwoFactorAuthController::class, 'disable'])->name('auth.2fa.disable');
     Route::get('/auth/2fa/status', [TwoFactorAuthController::class, 'status'])->name('auth.2fa.status');
 
+    
     // Notifications (users should be able to see notifications regardless of profile completion)
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unreadCount');
@@ -202,8 +200,10 @@ Route::prefix('api')->middleware('auth')->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     
     // Admin Dashboard (YESSS BOI)
-    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-
+    Route::get('/dashboard/stats', [App\Http\Controllers\Admin\DashboardController::class, 'stats'])
+    ->name('dashboard.stats');
+    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])
+        ->name('dashboard');
     // Scholarships
     Route::get('/scholarships', [AdminScholarshipController::class, 'index'])->name('scholarships.index');
     Route::get('/scholarships/{id}/edit', [AdminScholarshipController::class, 'edit'])->name('scholarships.edit');
@@ -231,13 +231,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
     Route::get('/users/export', [UserExportController::class, 'export'])->name('users.export');
 
-    // Analytics
-    Route::get('/analytics', [AdminAnalyticsController::class, 'index'])->name('analytics.index');
-    Route::get('/analytics/annotations', [AnnotationController::class, 'index']);
-    Route::post('/analytics/annotations', [AnnotationController::class, 'store']);
-    Route::put('/analytics/annotations/{id}', [AnnotationController::class, 'update']);
-    Route::delete('/analytics/annotations/{id}', [AnnotationController::class, 'destroy']);
-
     // Export
     Route::get('/export', [ExportController::class, 'export'])->name('export');
 
@@ -246,10 +239,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/faqs', [AdminFaqController::class, 'store'])->name('faqs.store');
     Route::put('/faqs/{id}', [AdminFaqController::class, 'update'])->name('faqs.update');
     Route::delete('/faqs/{id}', [AdminFaqController::class, 'destroy'])->name('faqs.destroy');
-
-    // Impersonate
-    Route::post('/impersonate/{userId}', [ImpersonationController::class, 'start'])->name('impersonate.start');
-    Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
 
     // Testimonials
     Route::get('/testimonials', [AdminTestimonialController::class, 'index'])->name('testimonials.index');
@@ -314,6 +303,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Activity heatmap
     Route::get('/activity-heatmap', \App\Http\Controllers\Admin\ActivityHeatmapController::class);
 });
-
 // Public shared dashboard (no auth)
 Route::get('/dashboard/shared/{token}', [PublicSharedDashboardController::class, 'show'])->name('public.shared-dashboard');

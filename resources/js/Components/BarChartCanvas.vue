@@ -1,26 +1,132 @@
 <template>
-  <div ref="containerRef" class="relative w-full" :style="{ height: height + 'px' }">
-    <canvas
-      ref="canvasRef"
-      :width="canvasWidth"
-      :height="canvasHeight"
-      class="w-full h-full block"
-      @mousemove="onMouseMove"
-      @mouseleave="onMouseLeave"
-    ></canvas>
+  <div class="bar-chart-wrapper perspective-1000">
+    <!-- Elevated glass slab -->
     <div
-      v-if="tooltip.visible"
-      class="absolute z-10 pointer-events-none glass-tooltip px-2 py-1 rounded text-xs shadow"
-      :class="isDark ? 'bg-black/85 text-white border border-white/20' : 'bg-white text-gray-900 border border-gray-200'"
-      :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }"
+      ref="containerRef"
+      class="bar-chart-slab relative w-full rounded-2xl overflow-hidden"
+      :style="{ height: height + 'px' }"
     >
-      {{ tooltip.text }}
+      <!-- Skeleton shimmer while no data -->
+      <div v-if="!hasData" class="skeleton-overlay absolute inset-0 z-10 flex items-center justify-center">
+        <svg class="skeleton-chart w-3/4 h-3/4" viewBox="0 0 400 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="shimmer" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.03)" />
+              <stop offset="50%" stop-color="rgba(255,255,255,0.12)" />
+              <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+              <animate attributeName="x1" values="0;1;0" dur="2s" repeatCount="indefinite" />
+            </linearGradient>
+          </defs>
+          <rect x="20" y="180" width="40" height="20" rx="4" fill="url(#shimmer)" />
+          <rect x="80" y="150" width="40" height="50" rx="4" fill="url(#shimmer)" />
+          <rect x="140" y="120" width="40" height="80" rx="4" fill="url(#shimmer)" />
+          <rect x="200" y="100" width="40" height="100" rx="4" fill="url(#shimmer)" />
+          <rect x="260" y="140" width="40" height="60" rx="4" fill="url(#shimmer)" />
+          <rect x="320" y="170" width="40" height="30" rx="4" fill="url(#shimmer)" />
+        </svg>
+      </div>
+
+      <!-- SVG Chart -->
+      <svg
+        v-if="hasData"
+        ref="svgRef"
+        class="w-full h-full block"
+        :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+        preserveAspectRatio="none"
+      >
+        <!-- Etched grid lines -->
+        <line
+          v-for="(tick, i) in gridLines"
+          :key="'g' + i"
+          :x1="padding.left"
+          :y1="tick.y"
+          :x2="svgWidth - padding.right"
+          :y2="tick.y"
+          :stroke="isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'"
+          stroke-width="1"
+          stroke-dasharray="4 4"
+          stroke-linecap="round"
+        />
+
+        <!-- Y-axis labels -->
+        <text
+          v-for="(tick, i) in gridLines"
+          :key="'yl' + i"
+          :x="padding.left - 12"
+          :y="tick.y + 4"
+          :fill="isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)'"
+          font-size="11"
+          font-family="Inter, system-ui, -apple-system, sans-serif"
+          text-anchor="end"
+        >{{ tick.label }}</text>
+
+        <!-- Bars -->
+        <g v-for="(bar, i) in bars" :key="'bar' + i">
+          <!-- Glow under bar -->
+          <rect
+            :x="bar.x"
+            :y="bar.y"
+            :width="bar.width"
+            :height="bar.height"
+            :fill="barColor"
+            :opacity="0.15"
+            rx="4"
+            :filter="`blur(4px)`"
+          />
+          <!-- Bar -->
+          <rect
+            :ref="el => barRefs[i] = el"
+            :x="bar.x"
+            :y="bar.y"
+            :width="bar.width"
+            :height="bar.height"
+            :fill="barColor"
+            class="bar-rect transition-all duration-200 cursor-pointer"
+            rx="4"
+            @mouseenter="showTooltip($event, bar)"
+            @mousemove="showTooltip($event, bar)"
+            @mouseleave="hideTooltip"
+          />
+          <!-- Value on top -->
+          <text
+            :x="bar.x + bar.width / 2"
+            :y="bar.y - 8"
+            :fill="isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)'"
+            font-size="10"
+            font-family="Inter, system-ui, -apple-system, sans-serif"
+            text-anchor="middle"
+          >{{ bar.value }}</text>
+        </g>
+
+        <!-- X-axis labels -->
+        <text
+          v-for="(bar, i) in bars"
+          :key="'xl' + i"
+          :x="bar.x + bar.width / 2"
+          :y="svgHeight - padding.bottom + 20"
+          :fill="isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)'"
+          font-size="10"
+          font-family="Inter, system-ui, -apple-system, sans-serif"
+          text-anchor="middle"
+        >{{ bar.label }}</text>
+      </svg>
     </div>
+
+    <!-- GlassTooltip -->
+    <GlassTooltip
+      :visible="tooltip.visible"
+      :targetRef="tooltipTargetRef"
+      :delay="0"
+    >
+      <p class="font-semibold text-gray-900 dark:text-white text-xs">{{ tooltip.label }}</p>
+      <p class="text-gray-500 dark:text-white/60 text-xs mt-0.5">{{ tooltip.text }}</p>
+    </GlassTooltip>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import GlassTooltip from '@/Components/GlassTooltip.vue';
 
 const props = defineProps({
   labels: { type: Array, required: true },
@@ -31,176 +137,167 @@ const props = defineProps({
   textColor: { type: String, default: 'rgba(255,255,255,0.7)' },
 });
 
-const canvasRef = ref(null);
 const containerRef = ref(null);
-const canvasWidth = ref(800);
-const canvasHeight = ref(600);
-const tooltip = ref({ visible: false, x: 0, y: 0, text: '' });
-const isDark = ref(true);
+const svgRef = ref(null);
+const svgWidth = ref(600);
+const svgHeight = ref(300);
+const barRefs = ref({});
+const tooltipTargetRef = ref(null);
+const tooltip = ref({ visible: false, x: 0, y: 0, label: '', text: '' });
+const isDark = ref(document.documentElement.classList.contains('dark'));
 
-let animationFrame = null;
-const animationDuration = 600;
 let resizeObserver = null;
-const padding = { top: 30, right: 20, bottom: 60, left: 60 };
+let themeObserver = null;
+const padding = { top: 30, right: 20, bottom: 50, left: 60 };
+const gridLinesCount = 5;
 
-// Store computed bar positions for hit detection
-const barPositions = ref([]);
+const hasData = computed(() => props.labels?.length > 0 && props.datasets[0]?.data?.length > 0);
 
-function detectTheme() {
+// Compute bars layout
+const bars = computed(() => {
+  const labels = props.labels || [];
+  const data = props.datasets[0]?.data || [];
+  if (!labels.length || !data.length) return [];
+
+  const maxVal = Math.max(...data, 1);
+  const chartW = svgWidth.value - padding.left - padding.right;
+  const chartH = svgHeight.value - padding.top - padding.bottom;
+  const barWidth = Math.max(10, (chartW / labels.length) * 0.6);
+  const gap = (chartW - barWidth * labels.length) / (labels.length + 1);
+
+  return labels.map((label, i) => {
+    const value = data[i] || 0;
+    const barHeight = (value / maxVal) * chartH;
+    return {
+      x: padding.left + gap + i * (barWidth + gap),
+      y: padding.top + chartH - barHeight,
+      width: barWidth,
+      height: barHeight,
+      label,
+      value,
+    };
+  });
+});
+
+// Grid lines positions and labels
+const gridLines = computed(() => {
+  const data = props.datasets[0]?.data || [];
+  const maxVal = Math.max(...data, 1);
+  const chartH = svgHeight.value - padding.top - padding.bottom;
+  return Array.from({ length: gridLinesCount + 1 }, (_, i) => {
+    const value = Math.round((maxVal / gridLinesCount) * (gridLinesCount - i));
+    const y = padding.top + (chartH / gridLinesCount) * i;
+    return { y, label: value };
+  });
+});
+
+// Update dimensions on resize
+function handleResize() {
+  if (!containerRef.value) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  svgWidth.value = rect.width;
+  svgHeight.value = props.height;
+}
+
+// Tooltip handlers
+function showTooltip(event, bar) {
+  // Find the corresponding SVG rect element to use as target
+  const idx = bars.value.indexOf(bar);
+  if (idx >= 0 && barRefs.value[idx]) {
+    tooltipTargetRef.value = barRefs.value[idx];
+  } else {
+    tooltipTargetRef.value = event.currentTarget;
+  }
+  tooltip.value = {
+    visible: true,
+    label: bar.label,
+    text: `${bar.value}`,
+  };
+}
+
+function hideTooltip() {
+  tooltip.value.visible = false;
+  tooltipTargetRef.value = null;
+}
+
+// Watch theme changes
+function handleThemeChange() {
   isDark.value = document.documentElement.classList.contains('dark');
 }
 
-const drawChart = (progress = 1) => {
-  detectTheme();
-  const canvas = canvasRef.value;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-
-  const labels = props.labels;
-  const data = props.datasets[0]?.data || [];
-  if (!labels.length || !data.length) return;
-
-  const maxVal = Math.max(...data, 1);
-  const chartW = w - padding.left - padding.right;
-  const chartH = h - padding.top - padding.bottom;
-  const barWidth = Math.max(8, (chartW / labels.length) * 0.6);
-  const gap = (chartW - barWidth * labels.length) / (labels.length + 1);
-
-  const gridColor = isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const axisColor = isDark.value ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
-
-  // Grid lines
-  ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  const gridLines = 5;
-  for (let i = 0; i <= gridLines; i++) {
-    const y = padding.top + (chartH / gridLines) * i;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(padding.left + chartW, y);
-    ctx.stroke();
-    ctx.fillStyle = axisColor;
-    ctx.font = '10px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(Math.round((maxVal / gridLines) * (gridLines - i)), padding.left - 8, y + 3);
-  }
-  ctx.setLineDash([]);
-
-  // Build bar positions array for tooltip
-  const positions = [];
-  // Bars
-  labels.forEach((label, i) => {
-    const value = data[i] || 0;
-    const targetBarHeight = (value / maxVal) * chartH * progress;
-    const x = padding.left + gap + i * (barWidth + gap);
-    const y = padding.top + chartH - targetBarHeight;
-    ctx.fillStyle = props.barColor;
-    ctx.fillRect(x, y, barWidth, targetBarHeight);
-    ctx.fillStyle = axisColor;
-    ctx.font = '10px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x + barWidth / 2, padding.top + chartH + 16);
-    ctx.fillText(value, x + barWidth / 2, y - 6);
-
-    positions.push({
-      x,
-      y,
-      width: barWidth,
-      height: targetBarHeight,
-      label,
-      value,
-    });
-  });
-  barPositions.value = positions;
-};
-
-const animate = () => {
-  const startTime = performance.now();
-  const step = (timestamp) => {
-    const elapsed = timestamp - startTime;
-    const progress = Math.min(1, elapsed / animationDuration);
-    drawChart(progress);
-    if (progress < 1) animationFrame = requestAnimationFrame(step);
-  };
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  animationFrame = requestAnimationFrame(step);
-};
-
-const handleResize = () => {
-  if (!containerRef.value) return;
-  const rect = containerRef.value.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvasWidth.value = rect.width * dpr;
-  canvasHeight.value = props.height * dpr;
-  if (canvasRef.value) {
-    canvasRef.value.style.width = rect.width + 'px';
-    canvasRef.value.style.height = props.height + 'px';
-  }
-  drawChart(1);
-};
-
 onMounted(() => {
-  nextTick(() => { handleResize(); animate(); });
+  handleResize();
   resizeObserver = new ResizeObserver(handleResize);
   if (containerRef.value) resizeObserver.observe(containerRef.value);
+
+  themeObserver = new MutationObserver(handleThemeChange);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 });
 
 onBeforeUnmount(() => {
-  if (animationFrame) cancelAnimationFrame(animationFrame);
   if (resizeObserver) resizeObserver.disconnect();
+  if (themeObserver) themeObserver.disconnect();
 });
-
-watch(() => [props.labels, props.datasets], () => { nextTick(() => { handleResize(); animate(); }); }, { deep: true });
-
-// ---- Tooltip interaction ----
-function getMousePos(event) {
-  const canvas = canvasRef.value;
-  if (!canvas) return null;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (event.clientX - rect.left) * scaleX,
-    y: (event.clientY - rect.top) * scaleY,
-    clientX: event.clientX,
-    clientY: event.clientY,
-  };
-}
-
-function onMouseMove(event) {
-  const pos = getMousePos(event);
-  if (!pos) return;
-  const positions = barPositions.value;
-  let found = false;
-  for (const bar of positions) {
-    if (
-      pos.x >= bar.x &&
-      pos.x <= bar.x + bar.width &&
-      pos.y >= bar.y &&
-      pos.y <= bar.y + bar.height
-    ) {
-      const containerRect = containerRef.value?.getBoundingClientRect();
-      const offsetX = containerRect ? (event.clientX - containerRect.left) : pos.clientX;
-      const offsetY = containerRect ? (event.clientY - containerRect.top) : pos.clientY;
-      tooltip.value = {
-        visible: true,
-        x: offsetX + 12,
-        y: offsetY - 30,
-        text: `${bar.label}: ${bar.value}`,
-      };
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    tooltip.value.visible = false;
-  }
-}
-
-function onMouseLeave() {
-  tooltip.value.visible = false;
-}
 </script>
+
+<style scoped>
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Elevated glass slab */
+.bar-chart-slab {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  isolation: isolate;
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.dark .bar-chart-slab {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.skeleton-overlay {
+  pointer-events: none;
+}
+
+/* Bar hover effect */
+.bar-rect {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.bar-rect:hover {
+  opacity: 0.85;
+  filter: brightness(1.15);
+}
+
+/* Responsive & accessibility */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .bar-chart-slab {
+    transform: none !important;
+  }
+  .bar-rect {
+    /* Touch devices get no hover, active is immediate */
+  }
+  .bar-rect:active {
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-chart-slab {
+    transition: none !important;
+    transform: none !important;
+  }
+  .bar-rect {
+    transition: none !important;
+  }
+}
+</style>

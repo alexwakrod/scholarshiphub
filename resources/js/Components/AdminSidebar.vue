@@ -137,7 +137,6 @@ const adminNavItems = [
   { route: '/admin/dashboard', label: 'Admin Dashboard', icon: PresentationChartBarIcon },
   { route: '/admin/scholarships', label: 'Manage Scholarships', icon: AcademicCapIcon },
   { route: '/admin/users', label: 'Users', icon: UsersIcon },
-  { route: '/admin/analytics', label: 'Analytics', icon: ChartBarIcon },
   { route: '/admin/faqs', label: 'FAQs', icon: QuestionMarkCircleIcon },
   { route: '/admin/import', label: 'Import', icon: ArrowUpTrayIcon },
   { route: '/admin/testimonials', label: 'Testimonials', icon: StarIcon },
