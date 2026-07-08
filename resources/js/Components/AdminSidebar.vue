@@ -140,14 +140,10 @@ const adminNavItems = [
   { route: '/admin/faqs', label: 'FAQs', icon: QuestionMarkCircleIcon },
   { route: '/admin/import', label: 'Import', icon: ArrowUpTrayIcon },
   { route: '/admin/testimonials', label: 'Testimonials', icon: StarIcon },
-  { route: '/admin/categories', label: 'Categories', icon: TagIcon },
   { route: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardIcon },
   { route: '/admin/scheduled-tasks', label: 'Scheduled Tasks', icon: ClockIcon },
   { route: '/admin/feature-flags', label: 'Feature Flags', icon: FlagIcon },
-  { route: '/admin/menu-editor', label: 'Menu Editor', icon: PencilIcon },
   { route: '/admin/file-manager', label: 'File Manager', icon: DocumentTextIcon },
-  { route: '/admin/notification-templates', label: 'Templates', icon: BellIcon },
-  { route: '/admin/shared-dashboards', label: 'Shared Dashboards', icon: ShareIcon },
   { route: '/admin/reports', label: 'Reports', icon: ChartBarIcon },
 ];
 

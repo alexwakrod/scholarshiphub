@@ -28,14 +28,9 @@ use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\UserExportController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ScheduledTaskController;
-use App\Http\Controllers\Admin\NotificationTemplateController;
-use App\Http\Controllers\Admin\MenuPreferencesController;
 use App\Http\Controllers\Admin\FileManagerController;
-use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomReportController;
-use App\Http\Controllers\Admin\SharedDashboardController;
 use App\Http\Controllers\Admin\DashboardLayoutController;
-use App\Http\Controllers\Public\SharedDashboardController as PublicSharedDashboardController;
 use App\Http\Controllers\Api\MatchStatusController;
 use App\Http\Controllers\Api\MatchBreakdownController;
 use App\Http\Controllers\Api\ActiveJobsController;
@@ -249,15 +244,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/feature-flags', [FeatureFlagController::class, 'index'])->name('feature-flags.index');
     Route::post('/feature-flags/toggle', [FeatureFlagController::class, 'toggle'])->name('feature-flags.toggle');
 
-    // Notification templates
-    Route::get('/notification-templates', [NotificationTemplateController::class, 'index'])->name('notification-templates.index');
-    Route::get('/notification-templates/create', [NotificationTemplateController::class, 'edit'])->name('notification-templates.create');
-    Route::get('/notification-templates/{id}/edit', [NotificationTemplateController::class, 'edit'])->name('notification-templates.edit');
-    Route::post('/notification-templates/save/{id?}', [NotificationTemplateController::class, 'save'])->name('notification-templates.save');
-    Route::post('/notification-templates/preview', [NotificationTemplateController::class, 'preview'])->name('notification-templates.preview');
-    Route::post('/notification-templates/test-send', [NotificationTemplateController::class, 'testSend'])->name('notification-templates.test-send');
-    Route::delete('/notification-templates/{id}', [NotificationTemplateController::class, 'destroy'])->name('notification-templates.destroy');
-
     // Scheduled tasks
     Route::get('/scheduled-tasks', [ScheduledTaskController::class, 'index'])->name('scheduled-tasks.index');
     Route::post('/scheduled-tasks/run', [ScheduledTaskController::class, 'run'])->name('scheduled-tasks.run');
@@ -272,29 +258,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/file-manager/{id}/download', [FileManagerController::class, 'download'])->name('file-manager.download');
     Route::get('/file-manager/batch-download', [FileManagerController::class, 'batchDownload'])->name('file-manager.batch-download');
 
-    // Categories
-    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
-    Route::post('/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
-
     // Reports
     Route::get('/reports', [CustomReportController::class, 'index'])->name('reports.index');
     Route::post('/reports', [CustomReportController::class, 'store'])->name('reports.store');
     Route::put('/reports/{id}', [CustomReportController::class, 'update'])->name('reports.update');
     Route::delete('/reports/{id}', [CustomReportController::class, 'destroy'])->name('reports.destroy');
     Route::post('/reports/preview', [CustomReportController::class, 'preview'])->name('reports.preview');
-
-    // Shared dashboards
-    Route::get('/shared-dashboards', [SharedDashboardController::class, 'index'])->name('shared-dashboards.index');
-    Route::post('/shared-dashboards', [SharedDashboardController::class, 'store'])->name('shared-dashboards.store');
-    Route::put('/shared-dashboards/{id}', [SharedDashboardController::class, 'update'])->name('shared-dashboards.update');
-    Route::delete('/shared-dashboards/{id}', [SharedDashboardController::class, 'destroy'])->name('shared-dashboards.destroy');
-
-    // Menu preferences
-    Route::get('/menu/preferences', [MenuPreferencesController::class, 'show'])->name('menu.preferences');
-    Route::put('/menu/preferences', [MenuPreferencesController::class, 'update']);
 
     // Dashboard layout
     Route::get('/dashboard/layout', [DashboardLayoutController::class, 'index']);
@@ -303,5 +272,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Activity heatmap
     Route::get('/activity-heatmap', \App\Http\Controllers\Admin\ActivityHeatmapController::class);
 });
-// Public shared dashboard (no auth)
-Route::get('/dashboard/shared/{token}', [PublicSharedDashboardController::class, 'show'])->name('public.shared-dashboard');

@@ -1,128 +1,203 @@
 <template>
   <AppLayout>
-    <div class="p-6 max-w-3xl mx-auto">
-      <h1 class="text-2xl font-bold text-white mb-6">Import Scholarships</h1>
+    <div class="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Import Scholarships
+        </h1>
+      </div>
 
-      <!-- Step indicator -->
-      <div class="flex items-center gap-2 mb-8">
+      <!-- Liquid Step Indicator -->
+      <div class="flex items-center gap-2">
         <div
           v-for="(step, idx) in steps"
           :key="idx"
-          class="flex-1 h-2 rounded-full"
-          :class="idx <= currentStep ? 'bg-blue-500' : 'bg-white/10'"
+          class="flex-1 h-2 rounded-full transition-all duration-500"
+          :class="idx <= currentStep
+            ? 'bg-gradient-to-r from-blue-400 to-indigo-400 shadow-[0_0_10px_rgba(59,130,246,0.4)]'
+            : 'bg-gray-200 dark:bg-white/10'"
         ></div>
       </div>
 
-      <!-- Step 1: File Upload -->
-      <GlassCard v-if="currentStep === 0" variant="elevated" class="p-6">
-        <h2 class="text-lg font-semibold text-white mb-4">1. Choose CSV File</h2>
-        <GlassFileUpload v-model="file" :multiple="false" accept=".csv" :uploadUrl="''" />
-        <div class="mt-4 flex justify-end">
-          <button
-            @click="nextStep"
-            :disabled="!file.length"
-            class="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </GlassCard>
-
-      <!-- Step 2: Preview & Mapping -->
-      <GlassCard v-if="currentStep === 1" variant="elevated" class="p-6">
-        <h2 class="text-lg font-semibold text-white mb-4">2. Map Columns</h2>
-        <p class="text-sm text-white/60 mb-4">Match CSV columns to the required fields.</p>
-
-        <div v-if="csvHeaders.length" class="space-y-3">
-          <div
-            v-for="field in requiredFields"
-            :key="field.key"
-            class="flex items-center gap-3"
-          >
-            <label class="w-32 text-sm text-white/70">{{ field.label }} <span class="text-red-400">*</span></label>
-            <GlassSelect
-              v-model="mapping[field.key]"
-              :options="csvHeaderOptions"
-              placeholder="Select column"
-            />
+      <!-- Step Content with Transition -->
+      <transition name="step-slide" mode="out-in">
+        <!-- Step 1: File Upload -->
+        <div v-if="currentStep === 0" key="step1" class="glass-elevated rounded-2xl p-5 md:p-6 border border-gray-200/60 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <ArrowUpTrayIcon class="w-5 h-5 text-blue-400" />
+            1. Choose CSV File
+          </h2>
+          <div class="glass-upload-zone group relative rounded-xl border-2 border-dashed border-gray-300 dark:border-white/10 p-8 text-center transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-400/50 hover:bg-blue-500/5 dark:hover:bg-blue-400/5">
+            <GlassFileUpload v-model="file" :multiple="false" accept=".csv" :uploadUrl="''" />
+            <p class="text-xs text-gray-500 dark:text-white/40 mt-2">
+              Max 10 MB. The CSV must contain columns: title, description, provider, country, deadline, amount (optional), source_url (optional).
+            </p>
           </div>
-
-          <!-- Optional fields -->
-          <div
-            v-for="field in optionalFields"
-            :key="field.key"
-            class="flex items-center gap-3"
-          >
-            <label class="w-32 text-sm text-white/70">{{ field.label }}</label>
-            <GlassSelect
-              v-model="mapping[field.key]"
-              :options="optionalHeaderOptions"
-              placeholder="Ignore"
-            />
+          <div class="mt-6 flex justify-end">
+            <button
+              @click="nextStep"
+              :disabled="!file.length"
+              class="glass-btn-primary group relative px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#3b82f6]"
+            >
+              <span class="relative z-10 flex items-center gap-2">
+                <ArrowRightIcon class="w-4 h-4" />
+                Next
+              </span>
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 opacity-0 group-hover:opacity-30 transition-opacity blur-xl localized-glow"></div>
+            </button>
           </div>
         </div>
 
-        <div class="mt-6">
-          <h3 class="text-sm font-medium text-white mb-2">Data Preview (first 3 rows)</h3>
-          <div class="overflow-x-auto glass-surface rounded-lg max-h-48">
-            <table class="w-full text-xs text-left">
-              <thead class="text-white/50 uppercase">
-                <tr>
-                  <th v-for="h in csvHeaders" :key="h" class="px-2 py-1">{{ h }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, i) in previewRows" :key="i" class="border-t border-white/5">
-                  <td v-for="h in csvHeaders" :key="h" class="px-2 py-1 text-white/70">{{ row[h] }}</td>
-                </tr>
-              </tbody>
-            </table>
+        <!-- Step 2: Column Mapping -->
+        <div v-else-if="currentStep === 1" key="step2" class="glass-elevated rounded-2xl p-5 md:p-6 border border-gray-200/60 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+            <MapIcon class="w-5 h-5 text-blue-400" />
+            2. Map Columns
+          </h2>
+          <p class="text-sm text-gray-500 dark:text-white/50 mb-4">Match CSV columns to the required fields.</p>
+
+          <div v-if="csvHeaders.length" class="space-y-3">
+            <!-- Required Fields -->
+            <div class="mb-4">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/40 mb-2">Required</h3>
+              <div v-for="field in requiredFields" :key="field.key" class="flex items-center gap-3 mb-2">
+                <label class="w-32 text-sm text-gray-700 dark:text-white/70 truncate">{{ field.label }} <span class="text-red-400">*</span></label>
+                <div class="flex-1">
+                  <GlassSelect
+                    v-model="mapping[field.key]"
+                    :options="csvHeaderOptions"
+                    placeholder="Select column"
+                  />
+                </div>
+              </div>
+            </div>
+            <!-- Optional Fields -->
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/40 mb-2">Optional</h3>
+              <div v-for="field in optionalFields" :key="field.key" class="flex items-center gap-3 mb-2">
+                <label class="w-32 text-sm text-gray-700 dark:text-white/70 truncate">{{ field.label }}</label>
+                <div class="flex-1">
+                  <GlassSelect
+                    v-model="mapping[field.key]"
+                    :options="optionalHeaderOptions"
+                    placeholder="Ignore"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Preview Table -->
+          <div class="mt-6">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white/80 mb-2 flex items-center gap-1.5">
+              <TableCellsIcon class="w-4 h-4 text-blue-400" />
+              Data Preview (first 3 rows)
+            </h3>
+            <div class="overflow-x-auto custom-scrollbar glass-surface rounded-xl border border-gray-200/60 dark:border-white/5 max-h-48">
+              <table class="w-full text-xs text-left">
+                <thead class="glass-table-header sticky top-0 z-10 text-gray-500 dark:text-white/40 uppercase">
+                  <tr>
+                    <th v-for="h in csvHeaders" :key="h" class="px-3 py-2 font-semibold tracking-wider">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200/30 dark:divide-white/5">
+                  <tr v-for="(row, i) in previewRows" :key="i" class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <td v-for="h in csvHeaders" :key="h" class="px-3 py-1.5 text-gray-700 dark:text-white/70">{{ row[h] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-between">
+            <button @click="currentStep = 0" class="glass-btn-back group relative px-4 py-2 rounded-xl bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-gray-300/50 dark:border-white/10 text-gray-700 dark:text-white/70 text-sm font-medium hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 hover:-translate-y-0.5 active:scale-95">
+              <span class="flex items-center gap-1.5">
+                <ArrowLeftIcon class="w-4 h-4" />
+                Back
+              </span>
+            </button>
+            <button
+              @click="startImport"
+              :disabled="!allRequiredMapped"
+              class="glass-btn-primary group relative px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#3b82f6]"
+            >
+              <span class="relative z-10 flex items-center gap-2">
+                <PlayIcon class="w-4 h-4" />
+                Start Import
+              </span>
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 opacity-0 group-hover:opacity-30 transition-opacity blur-xl localized-glow"></div>
+            </button>
           </div>
         </div>
 
-        <div class="mt-4 flex justify-between">
-          <button @click="currentStep = 0" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm">Back</button>
-          <button
-            @click="startImport"
-            :disabled="!allRequiredMapped"
-            class="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            Start Import
-          </button>
-        </div>
-      </GlassCard>
-
-      <!-- Step 3: Progress -->
-      <GlassCard v-if="currentStep === 2" variant="elevated" class="p-6">
-        <h2 class="text-lg font-semibold text-white mb-4">3. Import Progress</h2>
-        <div v-if="importing">
-          <div class="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
-            <div class="h-full bg-blue-500 transition-all" :style="{ width: progress + '%' }"></div>
+        <!-- Step 3: Progress -->
+        <div v-else key="step3" class="glass-elevated rounded-2xl p-5 md:p-6 border border-gray-200/60 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <ArrowPathIcon class="w-5 h-5 text-blue-400 animate-spin" v-if="importing" />
+            <CheckCircleIcon class="w-5 h-5 text-green-400" v-else-if="importDone" />
+            <ClockIcon class="w-5 h-5 text-blue-400" v-else />
+            3. Import Progress
+          </h2>
+          <div v-if="importing" class="space-y-4">
+            <!-- Liquid Progress Bar -->
+            <div class="h-2.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+              <div
+                class="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 progress-fill"
+                :style="{ width: progress + '%' }"
+              >
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-indigo-400/30 blur-sm"></div>
+              </div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-600 dark:text-white/50">
+              <span>{{ processed }} / {{ total }} rows processed</span>
+              <span>{{ progress }}%</span>
+            </div>
+            <p v-if="failedRows" class="text-xs text-red-400 flex items-center gap-1.5">
+              <ExclamationCircleIcon class="w-3.5 h-3.5" />
+              {{ failedRows }} rows failed
+            </p>
           </div>
-          <p class="text-sm text-white/50">{{ processed }} / {{ total }} rows processed</p>
-          <p v-if="failedRows" class="text-sm text-red-400 mt-1">{{ failedRows }} rows failed</p>
+          <div v-if="importDone" class="text-sm text-green-400 flex items-center gap-2 mt-2">
+            <CheckCircleIcon class="w-5 h-5" />
+            Import completed.
+          </div>
+          <div class="mt-6">
+            <button
+              @click="resetWizard"
+              class="glass-btn-back group relative px-4 py-2 rounded-xl bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-gray-300/50 dark:border-white/10 text-gray-700 dark:text-white/70 text-sm font-medium hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
+            >
+              <span class="flex items-center gap-1.5">
+                <PlusCircleIcon class="w-4 h-4" />
+                New Import
+              </span>
+            </button>
+          </div>
         </div>
-        <div v-if="importDone" class="text-green-400 text-sm">Import completed.</div>
-        <div class="mt-4">
-          <button
-            @click="resetWizard"
-            class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20"
-          >
-            New Import
-          </button>
-        </div>
-      </GlassCard>
+      </transition>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import GlassCard from '@/Components/GlassCard.vue';
 import GlassSelect from '@/Components/GlassSelect.vue';
 import GlassFileUpload from '@/Components/GlassFileUpload.vue';
+import {
+  ArrowUpTrayIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  MapIcon,
+  TableCellsIcon,
+  PlayIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+  PlusCircleIcon,
+} from '@heroicons/vue/24/outline';
 
 const currentStep = ref(0);
 const file = ref([]);
@@ -166,7 +241,6 @@ async function nextStep() {
     const { data } = await axios.post('/admin/import/preview', formData);
     csvHeaders.value = data.headers;
     previewRows.value = data.rows;
-    // Auto‑map if header names match exactly (case insensitive)
     requiredFields.forEach(f => {
       const match = data.headers.find(h => h.toLowerCase() === f.key.toLowerCase());
       mapping[f.key] = match || '';
@@ -196,7 +270,6 @@ async function startImport() {
       },
     });
     const jobId = data.jobId;
-    // Poll progress
     const poll = setInterval(async () => {
       const { data: status } = await axios.get(`/admin/import/status/${jobId}`);
       processed.value = status.processed_rows;
@@ -225,3 +298,149 @@ function resetWizard() {
   importDone.value = false;
 }
 </script>
+
+<style scoped>
+/* ============================================================
+   GLASS IMPORT WIZARD – THEME‑AWARE & BLUEPRINT COMPLIANT
+   ============================================================ */
+
+/* Elevated glass slab */
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.dark .glass-elevated {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Surface glass for preview table */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dark .glass-surface {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Sticky table header */
+.glass-table-header {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-table-header {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Upload zone glass */
+.glass-upload-zone {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.dark .glass-upload-zone {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Primary button */
+.glass-btn-primary {
+  transform: rotateY(-2deg);
+  will-change: transform;
+}
+.glass-btn-primary:hover:not(:disabled) {
+  transform: rotateY(0deg) translateY(-2px) scale(1.02);
+}
+.glass-btn-primary:active:not(:disabled) {
+  transform: scale(0.95) translateY(1px);
+  transition-duration: 0.1s;
+}
+
+/* Back button */
+.glass-btn-back {
+  transform: rotateY(-1deg);
+  will-change: transform;
+}
+.glass-btn-back:hover {
+  transform: rotateY(0deg) translateY(-1px) scale(1.01);
+}
+
+/* Localized glow */
+.localized-glow {
+  filter: blur(20px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.group:hover .localized-glow {
+  opacity: 0.3;
+}
+
+/* Liquid progress fill */
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Step slide transition */
+.step-slide-enter-active,
+.step-slide-leave-active {
+  transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.step-slide-enter-from {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+}
+.step-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.98);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 999px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Mobile & accessibility overrides */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .glass-btn-primary,
+  .glass-btn-back,
+  .glass-btn-primary:hover,
+  .glass-btn-back:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-slide-enter-active,
+  .step-slide-leave-active,
+  .glass-btn-primary,
+  .glass-btn-back,
+  .progress-fill::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+</style>

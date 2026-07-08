@@ -6,7 +6,6 @@
         <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
           Import Scholarships
         </h1>
-        <!-- No extra buttons; the start import button is already prominent -->
       </div>
 
       <!-- Upload Form (Elevated Glass) -->

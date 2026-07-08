@@ -35,7 +35,6 @@ class HandleInertiaRequests extends Middleware
                     'role'            => $user->role->value,
                     'avatar_url'      => $user->avatar_url,
                     'locale'          => $user->locale,
-                    'menu_preferences'=> $user->menu_preferences,
                 ];
 
                 if ($user->studentProfile) {
